@@ -4,6 +4,23 @@
 
 ---
 
+## Installation
+1. Download the [`read-aloud-extension-v1.0.0.zip`](https://github.com/adamclasic/read-aloud-extension/releases/download/v1.0.0/read-aloud-extension-v1.0.0.zip) file from the latest release.
+2. Unzip/extract the file to a folder on your computer.
+3. Open Google Chrome and navigate to `chrome://extensions/`.
+4. Enable **Developer mode** using the toggle switch in the top-right corner.
+5. Click **Load unpacked** in the top-left corner and select the extracted folder.
+
+---
+
+> [!IMPORTANT]
+> **Required API Key Permissions**
+> 
+> When creating or editing your ElevenLabs API key, ensure you set the following permissions under **Endpoints**:
+> 
+> * **Text to Speech**: Set to **Access**
+> * **Voices**: Set to **Read** (or **Write** if your configuration requires managing voices)
+
 ## ✨ Features
 
 - **Context Menu Integration:** Highlight any text on any website, right-click, and select **"Read Aloud AI"** to start listening immediately.
