@@ -86,11 +86,21 @@ async function processTextToSpeech(text, tabId) {
       "voiceId",
       "voiceName",
       "modelId",
-      "voiceSettings"
+      "voiceSettings",
+      "enableElevenLabs",
+      "forceNativeTTS"
     ]);
 
-    if (!settings.apiKey) {
-      sendErrorToTab(tabId, "No ElevenLabs API key configured. Click the extension icon to open Settings.");
+    // Split text into chunks
+    const chunks = splitIntoSentenceChunks(text);
+
+    // If Force Browser TTS switch is ON, or no API key is set, or ElevenLabs is disabled, use Eco-Friendly Native Browser TTS!
+    if (!settings.apiKey || settings.forceNativeTTS === true || settings.enableElevenLabs === false) {
+      chrome.tabs.sendMessage(tabId, {
+        action: "INIT_PLAYER_WEB_SPEECH",
+        text: text,
+        chunks: chunks.map((chunkText, idx) => ({ id: idx, text: chunkText, status: "pending" }))
+      });
       return;
     }
 
@@ -102,9 +112,6 @@ async function processTextToSpeech(text, tabId) {
       style: 0.0,
       use_speaker_boost: true
     };
-
-    // Split text into chunks
-    const chunks = splitIntoSentenceChunks(text);
     
     // Notify content script about total chunks
     chrome.tabs.sendMessage(tabId, {
