@@ -12,12 +12,36 @@ let currentChunkIndex = 0;
 let isPlaying = false;
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
+let isWebSpeech = false;
+let currentUtterance = null;
 
 // Listen for messages from background service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "INIT_PLAYER") {
     initPlayerUI(message.text);
+  } else if (message.action === "INIT_PLAYER_WEB_SPEECH") {
+    isWebSpeech = true;
+    audioChunks = (message.chunks || []).map(chunk => ({
+      ...chunk,
+      status: "ready"
+    }));
+    currentChunkIndex = 0;
+    if (shadowRoot) {
+      const badge = shadowRoot.getElementById("player-badge");
+      if (badge) {
+        badge.textContent = "Web Speech";
+        badge.style.background = "#10b981";
+      }
+      const toast = shadowRoot.getElementById("error-toast");
+      if (toast) {
+        toast.style.display = "none";
+        toast.textContent = "";
+      }
+    }
+    updateUI();
+    playCurrentChunk();
   } else if (message.action === "QUEUE_CHUNKS") {
+    isWebSpeech = false;
     audioChunks = message.chunks || [];
     currentChunkIndex = 0;
     updateUI();
@@ -33,7 +57,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chunk.status = "ready";
       chunk.audioUrl = message.audioUrl;
       // If this is the current chunk we are waiting to play, play it now!
-      if (message.chunkId === currentChunkIndex && !isPlaying) {
+      if (message.chunkId === currentChunkIndex && !isPlaying && !isWebSpeech) {
         playCurrentChunk();
       }
       updateUI();
@@ -68,8 +92,10 @@ function initPlayerUI(initialText) {
   audioEl.addEventListener("play", () => { isPlaying = true; updateUI(); });
   audioEl.addEventListener("pause", () => { isPlaying = false; updateUI(); });
   audioEl.addEventListener("error", (e) => {
-    console.error("Audio playback error:", e);
-    showErrorToast("Error playing audio chunk.");
+    if (!isWebSpeech && audioEl && audioEl.src && audioEl.src.length > 0 && audioEl.src !== window.location.href) {
+      console.error("Audio playback error:", e);
+      showErrorToast("Error playing audio chunk.");
+    }
   });
 
   // Render Shadow DOM styling and layout
@@ -233,7 +259,7 @@ function initPlayerUI(initialText) {
       <div class="header" id="drag-header">
         <div class="title-area">
           <span>Read Aloud AI</span>
-          <span class="badge">ElevenLabs</span>
+          <span class="badge" id="player-badge">ElevenLabs</span>
         </div>
         <button class="close-btn" id="close-btn" title="Stop & Close">✕</button>
       </div>
@@ -299,15 +325,78 @@ function endDrag() {
  */
 function playCurrentChunk() {
   const currentChunk = audioChunks[currentChunkIndex];
-  if (!currentChunk || !currentChunk.audioUrl) return;
+  if (!currentChunk) return;
 
-  if (audioEl.src !== currentChunk.audioUrl) {
-    audioEl.src = currentChunk.audioUrl;
+  if (isWebSpeech) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Cancel any active speech
+
+      const utterance = new SpeechSynthesisUtterance(currentChunk.text);
+
+      utterance.onstart = () => {
+        isPlaying = true;
+        updateUI();
+      };
+
+      utterance.onend = () => {
+        onChunkEnded();
+      };
+
+      utterance.onerror = (e) => {
+        if (e.error !== 'interrupted' && e.error !== 'canceled') {
+          console.error("Web Speech error:", e);
+          showErrorToast("Web Speech synthesis error.");
+        }
+        isPlaying = false;
+        updateUI();
+      };
+
+      utterance.onboundary = (e) => {
+        if (e.name === 'word' || e.name === 'sentence') {
+          updateWebSpeechProgress(e.charIndex, currentChunk.text ? currentChunk.text.length : 1);
+        }
+      };
+
+      currentUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+      isPlaying = true;
+      updateUI();
+    } else {
+      showErrorToast("Web Speech API is not supported in this browser.");
+    }
+    return;
   }
-  audioEl.play().catch(e => console.error("Play error:", e));
+
+  // ElevenLabs mode
+  if (!currentChunk.audioUrl) return;
+  if (audioEl) {
+    if (audioEl.src !== currentChunk.audioUrl) {
+      audioEl.src = currentChunk.audioUrl;
+    }
+    audioEl.play().catch(e => console.error("Play error:", e));
+  }
 }
 
 function togglePlayPause() {
+  if (isWebSpeech) {
+    if ('speechSynthesis' in window) {
+      if (isPlaying) {
+        window.speechSynthesis.cancel();
+        isPlaying = false;
+        updateUI();
+      } else {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+          isPlaying = true;
+          updateUI();
+        } else {
+          playCurrentChunk();
+        }
+      }
+    }
+    return;
+  }
+
   if (!audioEl) return;
   if (isPlaying) {
     audioEl.pause();
@@ -323,11 +412,15 @@ function togglePlayPause() {
 function onChunkEnded() {
   currentChunkIndex++;
   if (currentChunkIndex < audioChunks.length) {
-    const nextChunk = audioChunks[currentChunkIndex];
-    if (nextChunk && nextChunk.audioUrl) {
+    if (isWebSpeech) {
       playCurrentChunk();
     } else {
-      updateUI(); // Status will show "Loading next chunk..."
+      const nextChunk = audioChunks[currentChunkIndex];
+      if (nextChunk && nextChunk.audioUrl) {
+        playCurrentChunk();
+      } else {
+        updateUI(); // Status will show "Loading next chunk..."
+      }
     }
   } else {
     // All chunks completed!
@@ -337,7 +430,7 @@ function onChunkEnded() {
 }
 
 function onTimeUpdate() {
-  if (!shadowRoot || !audioEl) return;
+  if (!shadowRoot || !audioEl || isWebSpeech) return;
   const fill = shadowRoot.getElementById("progress-fill");
   const currEl = shadowRoot.getElementById("time-current");
   const durEl = shadowRoot.getElementById("time-duration");
@@ -356,7 +449,38 @@ function onTimeUpdate() {
   durEl.textContent = dur > 0 && isFinite(dur) ? formatTime(dur) : "0:00";
 }
 
+function updateWebSpeechProgress(charIndex = 0, chunkLength = 1) {
+  if (!shadowRoot || !isWebSpeech) return;
+  const fill = shadowRoot.getElementById("progress-fill");
+  const currEl = shadowRoot.getElementById("time-current");
+  const durEl = shadowRoot.getElementById("time-duration");
+
+  const totalChunks = audioChunks.length || 1;
+  const charPct = chunkLength > 0 ? (charIndex / chunkLength) : 0;
+  const overallPct = ((currentChunkIndex + charPct) / totalChunks) * 100;
+
+  if (fill) {
+    fill.style.width = `${Math.min(100, Math.max(0, overallPct))}%`;
+  }
+  if (currEl) {
+    currEl.textContent = `${currentChunkIndex + 1}/${totalChunks}`;
+  }
+  if (durEl) {
+    durEl.textContent = "Native";
+  }
+}
+
 function seekAudio(e) {
+  if (isWebSpeech) {
+    if (audioChunks.length === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = Math.max(0, Math.min(1, clickX / rect.width));
+    currentChunkIndex = Math.min(audioChunks.length - 1, Math.max(0, Math.floor(pct * audioChunks.length)));
+    playCurrentChunk();
+    return;
+  }
+
   if (!audioEl || !audioEl.duration || !isFinite(audioEl.duration)) return;
   const rect = e.currentTarget.getBoundingClientRect();
   const clickX = e.clientX - rect.left;
@@ -380,23 +504,32 @@ function updateUI() {
   const currentChunk = audioChunks[currentChunkIndex];
   const totalChunks = audioChunks.length;
 
-  if (!currentChunk) {
+  if (!currentChunk || currentChunkIndex >= totalChunks) {
     statusEl.textContent = "Finished playing.";
     playBtn.disabled = true;
     iconPlay.style.display = "block";
     iconPause.style.display = "none";
+    if (isWebSpeech) {
+      updateWebSpeechProgress(0, 1);
+    }
     return;
   }
 
-  if (currentChunk.status === "loading") {
-    statusEl.textContent = `Synthesizing chunk ${currentChunkIndex + 1} of ${totalChunks}...`;
-    playBtn.disabled = true;
-  } else if (currentChunk.status === "ready" || currentChunk.status === "playing") {
-    statusEl.textContent = `Playing chunk ${currentChunkIndex + 1} of ${totalChunks}`;
+  if (isWebSpeech) {
+    statusEl.textContent = `Speaking sentence ${currentChunkIndex + 1} of ${totalChunks} (Web Speech)`;
     playBtn.disabled = false;
-  } else if (currentChunk.status === "pending") {
-    statusEl.textContent = `Waiting for chunk ${currentChunkIndex + 1} of ${totalChunks}...`;
-    playBtn.disabled = true;
+    updateWebSpeechProgress(0, currentChunk.text ? currentChunk.text.length : 1);
+  } else {
+    if (currentChunk.status === "loading") {
+      statusEl.textContent = `Synthesizing chunk ${currentChunkIndex + 1} of ${totalChunks}...`;
+      playBtn.disabled = true;
+    } else if (currentChunk.status === "ready" || currentChunk.status === "playing") {
+      statusEl.textContent = `Playing chunk ${currentChunkIndex + 1} of ${totalChunks}`;
+      playBtn.disabled = false;
+    } else if (currentChunk.status === "pending") {
+      statusEl.textContent = `Waiting for chunk ${currentChunkIndex + 1} of ${totalChunks}...`;
+      playBtn.disabled = true;
+    }
   }
 
   if (isPlaying) {
@@ -425,6 +558,9 @@ function showErrorToast(errorMsg) {
  * Stop audio and remove player cleanly from DOM
  */
 function stopAndRemovePlayer() {
+  if (isWebSpeech && 'speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
   if (audioEl) {
     audioEl.pause();
     audioEl.src = "";
@@ -436,4 +572,6 @@ function stopAndRemovePlayer() {
   shadowHost = null;
   shadowRoot = null;
   isPlaying = false;
+  isWebSpeech = false;
+  currentUtterance = null;
 }

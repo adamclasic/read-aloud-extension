@@ -19,22 +19,31 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const selectedText = info.selectionText.trim();
     if (!selectedText) return;
 
-    // Send initial loading state to content script to display floating player UI
-    chrome.tabs.sendMessage(tab.id, {
-      action: "INIT_PLAYER",
-      text: selectedText
-    }).catch((err) => {
-      console.warn("Could not send message to tab. Injecting content script dynamically...", err);
-      // If content script wasn't loaded (e.g. extension just installed), inject it first
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ["content.js"]
-      }, () => {
-        chrome.tabs.sendMessage(tab.id, { action: "INIT_PLAYER", text: selectedText });
+    // Send initial loading state to content script to display floating player UI.
+    // If content script wasn't loaded (e.g. extension just installed or page refreshed), inject it first and await setup.
+    try {
+      await chrome.tabs.sendMessage(tab.id, {
+        action: "INIT_PLAYER",
+        text: selectedText
       });
-    });
+    } catch (err) {
+      console.warn("Could not send message to tab. Injecting content script dynamically...", err);
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content.js"]
+        });
+        await chrome.tabs.sendMessage(tab.id, {
+          action: "INIT_PLAYER",
+          text: selectedText
+        });
+      } catch (scriptErr) {
+        console.error("Failed to inject content script into tab:", scriptErr);
+        return;
+      }
+    }
 
-    // Process TTS conversion
+    // Process TTS conversion after content script is guaranteed to be listening
     await processTextToSpeech(selectedText, tab.id);
   }
 });
@@ -86,11 +95,21 @@ async function processTextToSpeech(text, tabId) {
       "voiceId",
       "voiceName",
       "modelId",
-      "voiceSettings"
+      "voiceSettings",
+      "enableElevenLabs",
+      "forceNativeTTS"
     ]);
 
-    if (!settings.apiKey) {
-      sendErrorToTab(tabId, "No ElevenLabs API key configured. Click the extension icon to open Settings.");
+    // Split text into chunks
+    const chunks = splitIntoSentenceChunks(text);
+
+    // If Force Browser TTS switch is ON, or no API key is set, or ElevenLabs is disabled, use Eco-Friendly Native Browser TTS!
+    if (!settings.apiKey || settings.forceNativeTTS === true || settings.enableElevenLabs === false) {
+      chrome.tabs.sendMessage(tabId, {
+        action: "INIT_PLAYER_WEB_SPEECH",
+        text: text,
+        chunks: chunks.map((chunkText, idx) => ({ id: idx, text: chunkText, status: "pending" }))
+      });
       return;
     }
 
@@ -102,9 +121,6 @@ async function processTextToSpeech(text, tabId) {
       style: 0.0,
       use_speaker_boost: true
     };
-
-    // Split text into chunks
-    const chunks = splitIntoSentenceChunks(text);
     
     // Notify content script about total chunks
     chrome.tabs.sendMessage(tabId, {
