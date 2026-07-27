@@ -32,6 +32,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         badge.textContent = "Web Speech";
         badge.style.background = "#10b981";
       }
+      const toast = shadowRoot.getElementById("error-toast");
+      if (toast) {
+        toast.style.display = "none";
+        toast.textContent = "";
+      }
     }
     updateUI();
     playCurrentChunk();
@@ -87,7 +92,7 @@ function initPlayerUI(initialText) {
   audioEl.addEventListener("play", () => { isPlaying = true; updateUI(); });
   audioEl.addEventListener("pause", () => { isPlaying = false; updateUI(); });
   audioEl.addEventListener("error", (e) => {
-    if (!isWebSpeech) {
+    if (!isWebSpeech && audioEl && audioEl.src && audioEl.src.length > 0 && audioEl.src !== window.location.href) {
       console.error("Audio playback error:", e);
       showErrorToast("Error playing audio chunk.");
     }
