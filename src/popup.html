@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Read Aloud AI Settings</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="container">
     <header class="header">
@@ -32,13 +34,44 @@
         <a href="https://elevenlabs.io/app/speech-synthesis" target="_blank" class="help-link">Get Key ↗</a>
       </label>
       <div class="input-wrapper">
-        <input type="password" id="api-key" class="input" placeholder="xi-api-key-..." spellcheck="false" autocomplete="off" />
+        <input type="password" id="api-key" class="input" placeholder="xi-api-key-..." spellcheck="false"
+          autocomplete="off" />
         <button type="button" id="toggle-key-visibility" class="icon-btn" title="Show/Hide Key">
-          <svg id="eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-          <svg id="eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+          <svg id="eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+            stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+          <svg id="eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+            stroke-width="2" style="display:none;">
+            <path
+              d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24">
+            </path>
+            <line x1="1" y1="1" x2="23" y2="23"></line>
+          </svg>
         </button>
       </div>
       <span class="helper-text">Stored securely in local extension storage. Never synced to cloud.</span>
+    </div>
+
+    <!-- Enable ElevenLabs & Eco-Friendly Browser TTS Switch -->
+    <div class="form-group"
+      style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 12px; font-weight: 700; color: #0f172a;">⚡ Enable Native TTS</span>
+            <span
+              style="display: inline-flex; align-items: center; justify-content: center; background: #d1fae5; color: #059669; padding: 2px 6px; border-radius: 12px; font-size: 11px; cursor: help;"
+              title="🌱 Eco-Friendly Browser TTS active when needed (runs 100% locally with zero carbon footprint)">🌱</span>
+          </div>
+          <span style="font-size: 10px; color: #64748b;">Use neural AI voices when enabled with API key</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="check-enable-elevenlabs" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
 
     <!-- Voice Selection -->
@@ -46,7 +79,11 @@
       <div class="label-row">
         <label for="voice-select" class="label">Voice</label>
         <button type="button" id="refresh-voices-btn" class="refresh-btn" title="Fetch Voices from ElevenLabs">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
           <span>Refresh</span>
         </button>
       </div>
@@ -71,7 +108,7 @@
         <span>Advanced Voice Settings</span>
         <span class="chevron">▾</span>
       </summary>
-      
+
       <div class="advanced-content">
         <div class="slider-group">
           <div class="slider-label">
@@ -114,4 +151,5 @@
   </div>
   <script src="popup.js"></script>
 </body>
+
 </html>

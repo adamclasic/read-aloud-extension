@@ -26,6 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sliderStyle = document.getElementById("slider-style");
   const valStyle = document.getElementById("val-style");
   const checkSpeakerBoost = document.getElementById("check-speaker-boost");
+  const checkEnableElevenLabs = document.getElementById("check-enable-elevenlabs");
 
   // Toggle API key visibility
   toggleKeyBtn.addEventListener("click", () => {
@@ -52,8 +53,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     "voiceName",
     "modelId",
     "voiceSettings",
-    "cachedVoices"
+    "cachedVoices",
+    "enableElevenLabs"
   ]);
+
+  if (checkEnableElevenLabs) {
+    checkEnableElevenLabs.checked = settings.enableElevenLabs !== false;
+  }
 
   if (settings.apiKey) {
     apiKeyInput.value = settings.apiKey;
@@ -96,10 +102,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 3. Handle Save button click
   saveBtn.addEventListener("click", async () => {
     const key = apiKeyInput.value.trim();
-    if (!key) {
-      showStatus("API Key is required to use ElevenLabs TTS", "error");
-      return;
-    }
 
     const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
     const voiceId = voiceSelect.value || "21m00Tcm4TlvDq8ikWAM"; // Default Rachel
@@ -118,11 +120,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       voiceId: voiceId,
       voiceName: voiceName,
       modelId: modelSelect.value,
-      voiceSettings: voiceSettings
+      voiceSettings: voiceSettings,
+      enableElevenLabs: checkEnableElevenLabs ? checkEnableElevenLabs.checked : true
     });
 
-    // If we haven't fetched voices yet, fetch them now
-    if (voiceSelect.disabled || voiceSelect.options.length <= 1) {
+    // If we haven't fetched voices yet and key is provided, fetch them now
+    if (key && (voiceSelect.disabled || voiceSelect.options.length <= 1)) {
       await fetchVoices(key, voiceId);
     }
 
