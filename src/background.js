@@ -87,14 +87,15 @@ async function processTextToSpeech(text, tabId) {
       "voiceName",
       "modelId",
       "voiceSettings",
-      "enableElevenLabs"
+      "enableElevenLabs",
+      "forceNativeTTS"
     ]);
 
     // Split text into chunks
     const chunks = splitIntoSentenceChunks(text);
 
-    // If Enable ElevenLabs switch is OFF or no API key is set, use Eco-Friendly Native Browser TTS!
-    if (!settings.apiKey || settings.enableElevenLabs === false) {
+    // If Force Browser TTS switch is ON, or no API key is set, or ElevenLabs is disabled, use Eco-Friendly Native Browser TTS!
+    if (!settings.apiKey || settings.forceNativeTTS === true || settings.enableElevenLabs === false) {
       chrome.tabs.sendMessage(tabId, {
         action: "INIT_PLAYER_WEB_SPEECH",
         text: text,

@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const sliderStyle = document.getElementById("slider-style");
   const valStyle = document.getElementById("val-style");
   const checkSpeakerBoost = document.getElementById("check-speaker-boost");
-  const checkEnableElevenLabs = document.getElementById("check-enable-elevenlabs");
+  const checkForceNativeTTS = document.getElementById("check-force-native-tts") || document.getElementById("check-enable-elevenlabs");
 
   // Toggle API key visibility
   toggleKeyBtn.addEventListener("click", () => {
@@ -54,11 +54,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     "modelId",
     "voiceSettings",
     "cachedVoices",
-    "enableElevenLabs"
+    "enableElevenLabs",
+    "forceNativeTTS"
   ]);
 
-  if (checkEnableElevenLabs) {
-    checkEnableElevenLabs.checked = settings.enableElevenLabs !== false;
+  if (checkForceNativeTTS) {
+    checkForceNativeTTS.checked = settings.forceNativeTTS === true || settings.enableElevenLabs === false;
   }
 
   if (settings.apiKey) {
@@ -114,6 +115,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       use_speaker_boost: checkSpeakerBoost.checked
     };
 
+    const isForceNative = checkForceNativeTTS ? checkForceNativeTTS.checked : false;
+
     // Note: Strictly store in local storage only (never chrome.storage.sync) to avoid syncing secrets across devices
     await chrome.storage.local.set({
       apiKey: key,
@@ -121,7 +124,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       voiceName: voiceName,
       modelId: modelSelect.value,
       voiceSettings: voiceSettings,
-      enableElevenLabs: checkEnableElevenLabs ? checkEnableElevenLabs.checked : true
+      forceNativeTTS: isForceNative,
+      enableElevenLabs: !isForceNative
     });
 
     // If we haven't fetched voices yet and key is provided, fetch them now
