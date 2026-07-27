@@ -19,22 +19,31 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const selectedText = info.selectionText.trim();
     if (!selectedText) return;
 
-    // Send initial loading state to content script to display floating player UI
-    chrome.tabs.sendMessage(tab.id, {
-      action: "INIT_PLAYER",
-      text: selectedText
-    }).catch((err) => {
-      console.warn("Could not send message to tab. Injecting content script dynamically...", err);
-      // If content script wasn't loaded (e.g. extension just installed), inject it first
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ["content.js"]
-      }, () => {
-        chrome.tabs.sendMessage(tab.id, { action: "INIT_PLAYER", text: selectedText });
+    // Send initial loading state to content script to display floating player UI.
+    // If content script wasn't loaded (e.g. extension just installed or page refreshed), inject it first and await setup.
+    try {
+      await chrome.tabs.sendMessage(tab.id, {
+        action: "INIT_PLAYER",
+        text: selectedText
       });
-    });
+    } catch (err) {
+      console.warn("Could not send message to tab. Injecting content script dynamically...", err);
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content.js"]
+        });
+        await chrome.tabs.sendMessage(tab.id, {
+          action: "INIT_PLAYER",
+          text: selectedText
+        });
+      } catch (scriptErr) {
+        console.error("Failed to inject content script into tab:", scriptErr);
+        return;
+      }
+    }
 
-    // Process TTS conversion
+    // Process TTS conversion after content script is guaranteed to be listening
     await processTextToSpeech(selectedText, tab.id);
   }
 });
