@@ -1,6 +1,0 @@
-{
-  "name": "Read Aloud AI - Chrome Extension",
-  "description": "Official marketing website and transparent privacy policy for Read Aloud AI, an open-source Chrome extension featuring ElevenLabs neural voices and browser TTS.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
