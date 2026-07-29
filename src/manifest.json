@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Read Aloud AI",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Converts selected webpage text to high-quality speech using the ElevenLabs Text-to-Speech API.",
   "permissions": [
     "contextMenus",
