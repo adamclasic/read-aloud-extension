@@ -60,7 +60,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (checkForceNativeTTS) {
     checkForceNativeTTS.checked = settings.forceNativeTTS === true || settings.enableElevenLabs === false;
+    //disable inputs if True
+    sliderStability.disabled = checkForceNativeTTS.checked;
+    valStability.disabled = checkForceNativeTTS.checked;
+    sliderSimilarity.disabled = checkForceNativeTTS.checked;
+    valSimilarity.disabled = checkForceNativeTTS.checked;
+    sliderStyle.disabled = checkForceNativeTTS.checked;
+    valStyle.disabled = checkForceNativeTTS.checked;
+    checkSpeakerBoost.disabled = checkForceNativeTTS.checked;
+    modelSelect.disabled = checkForceNativeTTS.checked;
+    voiceSelect.disabled = checkForceNativeTTS.checked;
   }
+  /**
+  * update ui if Force Native TTS switch is toggled
+  */
+  function updateUI() {
+    const isForceNative = checkForceNativeTTS.checked;
+    sliderStability.disabled = isForceNative;
+    valStability.disabled = isForceNative;
+    sliderSimilarity.disabled = isForceNative;
+    valSimilarity.disabled = isForceNative;
+    sliderStyle.disabled = isForceNative;
+    valStyle.disabled = isForceNative;
+    checkSpeakerBoost.disabled = isForceNative;
+    modelSelect.disabled = isForceNative;
+    voiceSelect.disabled = isForceNative;
+  }
+  checkForceNativeTTS.addEventListener("change", updateUI);
+
+
 
   if (settings.apiKey) {
     apiKeyInput.value = settings.apiKey;
@@ -79,13 +107,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (settings.voiceSettings) {
     sliderStability.value = settings.voiceSettings.stability ?? 0.5;
     valStability.textContent = Number(sliderStability.value).toFixed(2);
-    
+
     sliderSimilarity.value = settings.voiceSettings.similarity_boost ?? 0.75;
     valSimilarity.textContent = Number(sliderSimilarity.value).toFixed(2);
-    
+
     sliderStyle.value = settings.voiceSettings.style ?? 0.0;
     valStyle.textContent = Number(sliderStyle.value).toFixed(2);
-    
+
     checkSpeakerBoost.checked = settings.voiceSettings.use_speaker_boost ?? true;
   }
 
@@ -219,3 +247,5 @@ document.addEventListener("DOMContentLoaded", async () => {
     }, 3000);
   }
 });
+
+
