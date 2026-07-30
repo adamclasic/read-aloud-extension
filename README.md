@@ -5,7 +5,7 @@
 ---
 
 ## Installation
-1. Download the [`read-aloud-extension-latestzip`]([https://github.com/adamclasic/read-aloud-extension/releases/download/v1.1.0/read-aloud-extension-v1.1.0.zip](https://github.com/adamclasic/read-aloud-extension/releases/latest)) file from the latest release.
+1. Download the [`read-aloud-extension-latest.zip`](https://github.com/adamclasic/read-aloud-extension/releases/latest) file from the latest release.
 2. Unzip/extract the file to a folder on your computer.
 3. Open Google Chrome and navigate to `chrome://extensions/`.
 4. Enable **Developer mode** using the toggle switch in the top-right corner.
